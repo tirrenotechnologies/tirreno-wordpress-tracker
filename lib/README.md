@@ -1,6 +1,6 @@
 # tirreno PHP tracker library
 
-Send data from your PHP application to tirreno console.
+This is the official PHP implementation of the [tirreno Tracking API](https://www.tirreno.com/devs/).
 
 ```php
 <?php
@@ -8,8 +8,8 @@ Send data from your PHP application to tirreno console.
 // Load object
 require_once("TirrenoTracker.php");
 
-$tirrenoUrl = "https://example.tld";
-$trackingId = "XXX";
+$tirrenoUrl = "https://example.tld/sensor/"; // Sensor URL
+$trackingId = "XXX"; // Tracking ID
 
 // Create object
 $tracker = new TirrenoTracker($tirrenoUrl, $trackingId);
@@ -39,7 +39,7 @@ $tracker->track();
 ### Composer
 
 ```
-composer require tirreno/tirreno-php-tracker
+composer require tirreno/tirreno-tracker
 ```
 
 ### Manualy
@@ -52,4 +52,4 @@ require_once("TirrenoTracker.php");
 ## License
 
 Released under the [BSD License](https://opensource.org/license/bsd-3-clause).
-tirreno is a registered trademark of tirreno technologies sàrl, Switzerland.
+tirreno is a registered trademark of Tirreno Technologies Sàrl, Switzerland.

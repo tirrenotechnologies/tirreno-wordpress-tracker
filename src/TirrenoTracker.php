@@ -9,7 +9,7 @@
  * @link              https://www.tirreno.com tirreno(tm)
  *
  * @wordpress-plugin
- * Plugin Name:       tirreno security framework
+ * Plugin Name:       tirreno for WordPress
  * Plugin URI:        https://github.com/tirrenotechnologies/tirreno-wordpress-tracker/
  * Description:       Plugin implements the tirreno tracking API via TirrenoTracker library.
  * Version:           0.9.1
@@ -68,12 +68,44 @@ final class TirrenoTracker {
 		if ( is_admin() ) {
 			add_action( 'admin_menu', array( $this, 'add_menu' ) );
 			add_action( 'admin_init', array( $this, 'register_settings' ) );
+			add_filter( 'plugin_row_meta', array( $this, 'add_row_links' ), 10, 2 );
 		}
+	}
+
+	private function get_links(): array {
+		return array(
+			__( 'tirreno.com', 'tirreno' )                    => 'https://www.tirreno.com',
+			__( 'Developer guide', 'tirreno' )                => 'https://github.com/tirrenotechnologies/DEVELOPMENT.md',
+			__( 'Admin guide', 'tirreno' )                    => 'https://github.com/tirrenotechnologies/ADMIN.md',
+			__( 'Operator guide', 'tirreno' )                 => 'https://github.com/tirrenotechnologies/OPERATOR.md',
+			__( 'tirreno source code (GitHub)', 'tirreno' )   => 'https://github.com/tirrenotechnologies/tirreno',
+			__( 'tirreno for WordPress plugin', 'tirreno' )   => 'https://github.com/tirrenotechnologies/tirreno-wordpress-tracker',
+		);
+	}
+
+	private function link_html( string $label, string $url ): string {
+		return sprintf(
+			'<a href="%1$s" target="_blank" rel="noopener noreferrer">%2$s</a>',
+			esc_url( $url ),
+			esc_html( $label )
+		);
+	}
+
+	public function add_row_links( array $links, string $file ): array {
+		if ( plugin_basename( dirname( __DIR__ ) . '/tirreno-wordpress-tracker.php' ) !== $file ) {
+			return $links;
+		}
+
+		foreach ( $this->get_links() as $label => $url ) {
+			$links[] = $this->link_html( $label, $url );
+		}
+
+		return $links;
 	}
 
 	public function add_menu(): void {
 		add_menu_page(
-			'tirreno security framework',
+			'tirreno for WordPress',
 			'tirreno',
 			'manage_options',
 			'tirreno-wordpress-plugin',
@@ -115,16 +147,54 @@ final class TirrenoTracker {
 		<div class="wrap">
 		<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
+		<p class="tirreno-links">
+			<?php
+			$tirreno_links = array();
+			foreach ( $this->get_links() as $label => $url ) {
+				$tirreno_links[] = $this->link_html( $label, $url );
+			}
+			// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+			echo implode( ' | ', $tirreno_links ); // escaped previously in link_html()
+			?>
+		</p>
+
+		<p>
+			<?php esc_html_e( 'This plugin sends security events from this site to your tirreno instance to keep an audit log, detect threats and record field edit history. It covers logins and failed logins, logouts, registrations, password and email changes, profile, content and comment edits, searches and error pages. tirreno scores each account against its rules, so attacks such as credential stuffing, account takeover, spam and scanning can be reviewed in the tirreno console.', 'tirreno' ); ?>
+		</p>
+		<p>
+			<?php esc_html_e( 'Events are sent once per request, when the page finishes. AJAX, cron and REST API requests are not tracked. Detection only starts once rules have weights in the tirreno console.', 'tirreno' ); ?>
+		</p>
+
+		<?php if ( defined( 'TIRRENO_URL' ) || defined( 'TRACKING_ID' ) ) : ?>
+		<div class="notice notice-info inline">
+			<p>
+				<?php esc_html_e( 'Values defined in wp-config.php take precedence over the fields below:', 'tirreno' ); ?>
+				<?php if ( defined( 'TIRRENO_URL' ) ) : ?>
+					<br /><code>TIRRENO_URL</code> = <code><?php echo esc_html( (string) TIRRENO_URL ); ?></code>
+				<?php endif; ?>
+				<?php if ( defined( 'TRACKING_ID' ) ) : ?>
+					<br /><code>TRACKING_ID</code> = <code><?php echo esc_html( substr( (string) TRACKING_ID, 0, 6 ) . '…' ); ?></code>
+				<?php endif; ?>
+			</p>
+		</div>
+		<?php endif; ?>
+
 		<form method="post" action="options.php">
 			<?php settings_fields( 'tirreno-settings-group' ); ?>
 			<table class="form-table">
 				<tr valign="top">
-				<th scope="row">tirreno URL</th>
-				<td><input type="text" class="regular-text" name="tirreno_url" value="<?php echo esc_attr( get_option( 'tirreno_url' ) ); ?>" /></td>
+				<th scope="row">Sensor URL</th>
+				<td>
+					<input type="text" class="regular-text" name="tirreno_url" value="<?php echo esc_attr( get_option( 'tirreno_url' ) ); ?>" />
+					<p class="description"><?php esc_html_e( 'Full sensor URL of your tirreno, including the trailing slash, for example https://tirreno.example.com/sensor/.', 'tirreno' ); ?></p>
+				</td>
 				</tr>
 				<tr valign="top">
 				<th scope="row">Tracking ID</th>
-				<td><input type="text" class="regular-text" name="tracking_id" value="<?php echo esc_attr( get_option( 'tracking_id' ) ); ?>" /></td>
+				<td>
+					<input type="text" class="regular-text" name="tracking_id" value="<?php echo esc_attr( get_option( 'tracking_id' ) ); ?>" />
+					<p class="description"><?php esc_html_e( 'The API key shown on the API page of the tirreno console.', 'tirreno' ); ?></p>
+				</td>
 				</tr>
 			</table>
 			<?php submit_button(); ?>
@@ -360,6 +430,7 @@ final class TirrenoTracker {
 		}
 
 		$this->tracker->setEventTypeAccountLogin();
+		$this->set_identity( $user );
 	}
 
 	public function set_event_type_account_logout(): void {
@@ -376,6 +447,38 @@ final class TirrenoTracker {
 		}
 
 		$this->tracker->setEventTypeAccountLoginFail();
+
+		// Nobody is logged in during a failed attempt, so the identity set at init is empty. Attribute the event to the account that was targeted.
+		$login = trim( $username );
+		if ( '' === $login ) {
+			return;
+		}
+
+		$user = get_user_by( 'login', $login );
+		if ( ! $user && is_email( $login ) ) {
+			$user = get_user_by( 'email', $login );
+		}
+
+		if ( $user instanceof WP_User ) {
+			$this->set_identity( $user );
+			return;
+		}
+
+		// Unknown username: keep it, since guessed names are a signal in themselves, if nothing usable survives sanitizing, the IP-based fallback applies.
+		$guessed = sanitize_user( $login );
+		if ( '' !== $guessed ) {
+			$this->tracker->setUserName( $guessed );
+		}
+	}
+
+	private function set_identity( WP_User $user ): void {
+		if ( $user->user_login ) {
+			$this->tracker->setUserName( (string) $user->user_login );
+		}
+
+		if ( $user->user_email ) {
+			$this->tracker->setEmailAddress( (string) $user->user_email );
+		}
 	}
 
 	// keep 1 arg

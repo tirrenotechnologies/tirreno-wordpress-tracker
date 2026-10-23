@@ -1,6 +1,6 @@
 {
-    "name": "tirreno/tirreno-php-tracker",
-    "description": "PHP client for tirreno security analytics API",
+    "name": "tirreno/tirreno-tracker",
+    "description": "PHP client for tirreno security framework API",
     "type": "library",
     "keywords": [
         "tirreno",
@@ -16,7 +16,7 @@
     "homepage": "https://www.tirreno.com",
     "authors": [
         {
-            "name": "tirreno technologies sàrl",
+            "name": "Tirreno Technologies Sàrl",
             "email": "team@tirreno.com",
             "homepage": "https://www.tirreno.com"
         }
@@ -31,5 +31,11 @@
     },
     "autoload": {
         "classmap": ["."]
+    },
+    "replace": {
+        "tirreno/tirreno-php-tracker": "self.version"
+    },
+    "provide": {
+        "tirreno/tirreno-php-tracker": "self.version"
     }
 }
